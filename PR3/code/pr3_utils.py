@@ -36,7 +36,7 @@ def load_data(file_name):
     return t,features,linear_velocity,angular_velocity,K,b,imu_T_cam
 
 
-def visualize_trajectory_2d(pose,path_name="Unknown",show_ori=False):
+def visualize_trajectory_2d(pose,landmarks=None,path_name="Unknown",show_ori=False):
     '''
     function to visualize the trajectory in 2D
     Input:
@@ -47,6 +47,7 @@ def visualize_trajectory_2d(pose,path_name="Unknown",show_ori=False):
     fig,ax = plt.subplots(figsize=(5,5))
     n_pose = pose.shape[2]
     ax.plot(pose[0,3,:],pose[1,3,:],'r-',label=path_name)
+    ax.plot(landmarks[0, :], landmarks[1, :], 'bo', markersize=1, label="landmark")
     ax.scatter(pose[0,3,0],pose[1,3,0],marker='s',label="start")
     ax.scatter(pose[0,3,-1],pose[1,3,-1],marker='o',label="end")
   
@@ -74,6 +75,29 @@ def visualize_trajectory_2d(pose,path_name="Unknown",show_ori=False):
     return fig, ax
 
 
+def hat_adj(x):
+    assert x.size in [3, 6]
+    x = x.reshape(-1)
+    if x.size == 3:
+        return np.array([[0, -x[2], x[1]], [x[2], 0, -x[0]], [-x[1], x[0], 0]])
+    elif x.size == 6:
+        return np.block([[hat_adj(x[3:]), x[:3].reshape(-1, 1)], [np.array([0, 0, 0, 0])]])
 
+def cwedge(x):
+    assert x.size == 6
+    x = x.reshape(-1)
+    return np.block([[hat_adj(x[3:]), hat_adj(x[:3])], [np.zeros((3, 3)), hat_adj(x[3:])]])
 
+def cdot(x):
+    return np.block([[np.eye(3), -hat_adj(x[:3])], [np.zeros((1, 6))]])
 
+def pi(q):
+    return q/q[2,:]
+
+def pi_2(q):
+    q = q.reshape(-1,1)
+    return q/q[2,:]
+
+def dpi_dq(q):
+    return (1 / q[2]) * np.array([[1, 0, -q[0] / q[2], 0], [0, 1, -q[1] / q[2], 0], [0, 0, 0, 0],
+                                  [0, 0, -q[3] / q[2], 1]])
