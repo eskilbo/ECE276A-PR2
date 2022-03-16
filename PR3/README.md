@@ -4,7 +4,7 @@ The data needs to be downloaded as explained in the project writeout and added i
 
 To run the program, simply run
 
-python3 main.py
+`python3 main.py`
 
 Files:
 
